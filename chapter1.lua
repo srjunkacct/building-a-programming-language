@@ -6,7 +6,8 @@ function sumCaptures(string)
 	local whitespace = lpeg.P(" ")^0
 	local whitespaceDigit = whitespace * digit * whitespace
 	local plus = lpeg.P("+")
-	local sumCapturePattern = lpeg.C(whitespaceDigit) * ( lpeg.Cp() * plus * lpeg.C(whitespaceDigit) ) ^ 0
+	local endString = -lpeg.P(1)
+	local sumCapturePattern = lpeg.C(whitespaceDigit) * ( lpeg.Cp() * plus * lpeg.C(whitespaceDigit) ) ^ 0 * endString
 	return sumCapturePattern:match(string)
 end
 

@@ -6,10 +6,12 @@ function sumCaptures(string)
 	local whitespace = lpeg.P(" ")^0
 	local whitespaceDigit = whitespace * digit * whitespace
 	local plus = lpeg.P("+")
+        local sign = lpeg.S("+-")^0
+	local whitespaceDigitSign = sign * whitespaceDigit
 	local endString = -lpeg.P(1)
-	local sumCapturePattern = lpeg.C(whitespaceDigit) * ( lpeg.Cp() * plus * lpeg.C(whitespaceDigit) ) ^ 0 * endString
+	local sumCapturePattern = lpeg.C(whitespaceDigitSign) * ( lpeg.Cp() * plus * lpeg.C(whitespaceDigitSign) ) ^ 0 * endString
 	return sumCapturePattern:match(string)
 end
 
-print(sumCaptures("12+13+25"))
+print(sumCaptures("12+-13++25"))
 

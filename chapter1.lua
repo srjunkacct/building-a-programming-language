@@ -1,17 +1,40 @@
 
 local lpeg = require "lpeg"
 
-function sumCaptures(string)
-	local digit = lpeg.R("09")^1
-	local whitespace = lpeg.P(" ")^0
-	local whitespaceDigit = whitespace * digit * whitespace
-	local plus = lpeg.P("+")
-        local sign = lpeg.S("+-")^0
-	local whitespaceDigitSign = sign * whitespaceDigit
-	local endString = -lpeg.P(1)
-	local sumCapturePattern = lpeg.C(whitespaceDigitSign) * ( lpeg.Cp() * plus * lpeg.C(whitespaceDigitSign) ) ^ 0 * endString
-	return sumCapturePattern:match(string)
+local space = lpeg.S(" \n\t")^0
+local numeral = (lpeg.R("09")^1 / tonumber) * space 
+local opA = lpeg.C(lpeg.S"+-") * space
+local opM = lpeg.C(lpeg.S"*/%") * space
+local opE = lpeg.C(lpeg.S"^") * space
+
+function fold(lst)
+	local acc = lst[1]
+	for i = 2, #lst, 2 do
+		if lst[i] == "+" then
+			acc = acc + lst[i+1]
+		elseif lst[i] == "-" then
+			acc = acc - lst[i+1]
+		elseif lst[i] == "*" then
+			acc = acc * lst[i+1]
+		elseif lst[i] == "/" then
+			acc = acc / lst[i+1]
+		elseif lst[i] == "%" then
+			acc = acc % lst[i+1]
+		elseif lst[i] == "^" then
+			acc = acc ^ lst[i+1]
+		else
+			error("Unknown operator")
+		end
+	end
+	return acc
 end
 
-print(sumCaptures("12+-13++25"))
+local exp = space * lpeg.Ct(numeral * (opE * numeral)^0) / fold
+local term = space * lpeg.Ct(exp * (opM * exp)^0) / fold
+local sum = space * lpeg.Ct(term * (opA * term)^0) / fold * -1
+
+local subject = "2 ^ 3 + 4 * 10 % 6"
+print(subject)
+print(sum:match(subject))
+
 

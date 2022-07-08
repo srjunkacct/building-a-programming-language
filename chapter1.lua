@@ -7,6 +7,9 @@ local opA = lpeg.C(lpeg.S"+-") * space
 local opM = lpeg.C(lpeg.S"*/%") * space
 local opE = lpeg.C(lpeg.S"^") * space
 
+local OP = "(" * space
+local CP = ")" * space
+
 function fold(lst)
 	local acc = lst[1]
 	for i = 2, #lst, 2 do
@@ -29,12 +32,17 @@ function fold(lst)
 	return acc
 end
 
-local exp = space * lpeg.Ct(numeral * (opE * numeral)^0) / fold
-local term = space * lpeg.Ct(exp * (opM * exp)^0) / fold
-local sum = space * lpeg.Ct(term * (opA * term)^0) / fold * -1
+grammar = lpeg.P{
+	[1] = "sum",
+	primary = numeral + OP * lpeg.V"sum" * CP,
+	exp = space * lpeg.Ct(lpeg.V"primary" * (opE * lpeg.V"primary")^0) / fold,
+    term = space * lpeg.Ct(lpeg.V"exp" * (opM * lpeg.V"exp")^0) / fold,
+    sum = space * lpeg.Ct(lpeg.V"term" * (opA * lpeg.V"term")^0) / fold
+}
 
-local subject = "2 ^ 3 + 4 * 10 % 6"
+grammar = grammar * -1
+local subject = "2 ^ ( 3 + 4 ) * 10 % 1000"
 print(subject)
-print(sum:match(subject))
+print(grammar:match(subject))
 
 

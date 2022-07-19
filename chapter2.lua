@@ -12,9 +12,15 @@ local space = lpeg.S(" \t\n")^0
 local numeral = lpeg.R("09")^1 / node * space
 
 local opA = lpeg.C(lpeg.S"+-") * space
-local opM = lpeg.C(lpeg.S"*/") * space
+local opM = lpeg.C(lpeg.S"*/%") * space
+local opP = lpeg.C(lpeg.S"^") * space
 
-local ops = { ["+"] = "add", ["-"] = "sub", ["*"] = "mul", ["/"] = "div" }
+local ops = { ["+"] = "add", 
+["-"] = "sub", 
+["*"] = "mul", 
+["/"] = "div",
+["%"] = "mod",
+["^"] = "pow" }
 -- Convert a list (n1, "+", n2, "+", n3, ... into a tree
 
 local function foldBin (lst)
@@ -25,13 +31,23 @@ local function foldBin (lst)
     return tree
 end
 
-local term = lpeg.V"term"
+local function foldBinBackwards (lst)
+    local tree = lst[#lst]
+    for i = #lst - 1, 1, -2 do
+        tree = { tag = "binopBackwards", e1 = tree, op = lst[i], e2 = lst[i-1] }
+    end
+    return tree
+end
+
+local term1 = lpeg.V"term1"
+local term0 = lpeg.V"term0"
 local exp = lpeg.V"exp"
 
 grammar = lpeg.P{"exp",
-    term = lpeg.Ct(numeral * (opM * numeral)^0) / foldBin,
-    exp = lpeg.Ct(term * (opA * term)^0) / foldBin,
-
+    term1 = lpeg.Ct(numeral * (opP * numeral)^0) / foldBinBackwards,
+    term0 = lpeg.Ct(term1 * (opM * term1)^0) / foldBin,
+    exp = lpeg.Ct(term0 * (opA * term0)^0) / foldBin,
+    
 }
 
 local function parse (input)
@@ -54,6 +70,10 @@ local function codeExp (state, ast)
     elseif ast.tag == "binop" then
         codeExp(state, ast.e1)
         codeExp(state, ast.e2)
+        addCode(state, ops[ast.op])
+    elseif ast.tag == "binopBackwards" then
+        codeExp(state, ast.e2)
+        codeExp(state, ast.e1)
         addCode(state, ops[ast.op])
     else error("ERROR:  Invalid tree")
     end
@@ -87,6 +107,12 @@ local function run (code, stack)
             topStack = topStack - 1
         elseif instruction == "div" then
             stack[topStack - 1] = stack [topStack - 1] / stack[topStack]
+            topStack = topStack - 1
+        elseif instruction == "mod" then
+            stack[topStack - 1] = stack [topStack - 1] % stack[topStack]
+            topStack = topStack - 1
+        elseif instruction == "pow" then
+            stack[topStack - 1] = stack [topStack - 1] ^ stack[topStack]
             topStack = topStack - 1
         else error("Error!  Unknown instruction.")
         end
